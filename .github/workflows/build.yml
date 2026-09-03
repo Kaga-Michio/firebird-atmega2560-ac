@@ -1,0 +1,22 @@
+name: Build AVR Hex
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install AVR Toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-avr avr-libc binutils-avr
+
+      - name: Compile and Generate HEX
+        run: |
+          avr-gcc -mmcu=atmega2560 -DF_CPU=14745600UL -Os -o firmware.elf main.c
+          avr-objcopy -O ihex -R .eeprom firmware.elf firmware.hex
+
+      - name: Upload Hex Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Firebird-HEX
+          path: firmware.hex
