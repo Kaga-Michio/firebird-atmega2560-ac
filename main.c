@@ -145,7 +145,7 @@ int main(void)
         // When boot switch is pressed (Active-Low)
         if (!(PINE & (1 << PE7)))
         {
-            lcd_string(1, 4, "Dere~     ");
+            lcd_string(1, 4, "Daku_Maharaj     ");
             beep_3_times();
 
             // Wait for switch release to avoid continuous repeating beeps while holding
@@ -156,7 +156,7 @@ int main(void)
         }
         else
         {
-            lcd_string(1, 4, "Tsun      ");
+            lcd_string(1, 4, "Embedded Lab      ");
         }
         _delay_ms(50);
     }
