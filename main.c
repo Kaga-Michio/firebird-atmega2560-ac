@@ -15,20 +15,20 @@
 // LCD Driver Functions
 void lcd_port_config(void)
 {
-    DDRC = DDRC | 0xF7;     // All LCD pins as output
-    PORTC = PORTC & 0x08;   // All LCD pins set to logic 0 except PC3
+    DDRC  = DDRC | 0xF7;     // Set LCD pins (and PC3) as output
+    PORTC = PORTC & 0x08;   // Set pins to low; retain buzzer line state
 }
 
 void lcd_set_4bit(void)
 {
     _delay_ms(1);
-    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = 0x30; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
+    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = (lcd_port & 0x0F) | 0x30; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
     _delay_ms(1);
-    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = 0x30; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
+    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = (lcd_port & 0x0F) | 0x30; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
     _delay_ms(1);
-    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = 0x30; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
+    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = (lcd_port & 0x0F) | 0x30; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
     _delay_ms(1);
-    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = 0x20; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
+    cbit(lcd_port,RS); cbit(lcd_port,RW); lcd_port = (lcd_port & 0x0F) | 0x20; sbit(lcd_port,EN); _delay_ms(5); cbit(lcd_port,EN);
 }
 
 void lcd_wr_command(unsigned char cmd)
@@ -88,16 +88,45 @@ void lcd_string(char row, char column, char *str)
     }
 }
 
-// Firebird V Switch Configuration
+// Buzzer Configuration (PC3 on Firebird V)
+void buzzer_pin_config(void)
+{
+    DDRC  |= (1 << PC3);  // Set PC3 as output
+    PORTC &= ~(1 << PC3); // Turn off buzzer initially
+}
+
+void buzzer_on(void)
+{
+    PORTC |= (1 << PC3);
+}
+
+void buzzer_off(void)
+{
+    PORTC &= ~(1 << PC3);
+}
+
+void beep_3_times(void)
+{
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        buzzer_on();
+        _delay_ms(100);
+        buzzer_off();
+        _delay_ms(100);
+    }
+}
+
+// Boot Switch Configuration (PE7 on Firebird V)
 void boot_switch_pin_config(void)
 {
-    DDRE  &= ~(1 << PE7); // PE7 as input
+    DDRE  &= ~(1 << PE7); // Set PE7 as input
     PORTE |= (1 << PE7);  // Enable pull-up
 }
 
 void port_init(void)
 {
     lcd_port_config();
+    buzzer_pin_config();
     boot_switch_pin_config();
 }
 
@@ -113,16 +142,21 @@ int main(void)
     
     while (1)
     {
+        // When boot switch is pressed (Active-Low)
         if (!(PINE & (1 << PE7)))
         {
-            // Switch PRESSED: Starts at Row 1, Column 4
-            // Trailing spaces clear characters from "NOT PRESSED"
-            lcd_string(1, 4, "PRESSED    ");
+            lcd_string(1, 4, "Dere~     ");
+            beep_3_times();
+
+            // Wait for switch release to avoid continuous repeating beeps while holding
+            while (!(PINE & (1 << PE7)))
+            {
+                _delay_ms(10);
+            }
         }
         else
         {
-            // Switch NOT PRESSED: Starts at Row 1, Column 4
-            lcd_string(1, 4, "NOT PRESSED");
+            lcd_string(1, 4, "Tsun      ");
         }
         _delay_ms(50);
     }
