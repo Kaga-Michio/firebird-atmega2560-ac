@@ -115,11 +115,14 @@ int main(void)
     {
         if (!(PINE & (1 << PE7)))
         {
-            lcd_string(1, 4, "Dere~     ");
+            // Switch PRESSED: Starts at Row 1, Column 4
+            // Trailing spaces clear characters from "NOT PRESSED"
+            lcd_string(1, 4, "PRESSED    ");
         }
         else
         {
-            lcd_string(1, 4, "Tsun      ");
+            // Switch NOT PRESSED: Starts at Row 1, Column 4
+            lcd_string(1, 4, "NOT PRESSED");
         }
         _delay_ms(50);
     }
