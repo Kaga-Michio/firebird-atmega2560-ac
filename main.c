@@ -6,7 +6,7 @@
 #include 
 
 // ==========================================
-// SAFE DELAY WRAPPER
+// SAFE DELAY WRAPPER (Fixes compiler limits)
 // ==========================================
 void safe_delay_ms(unsigned int delay_time)
 {
@@ -65,13 +65,13 @@ void traverse_8_shape(void)
     for (i = 0; i < 4; i++)
     {
         forward();
-        safe_delay_ms(500);  // Short forward burst
+        safe_delay_ms(500); 
         
         stop();
-        safe_delay_ms(100);  // Brief pause
+        safe_delay_ms(100); 
         
         left();
-        safe_delay_ms(400);  // Turn duration (Adjust this if it under/over turns)
+        safe_delay_ms(400); 
         
         stop();
         safe_delay_ms(100);  
@@ -81,13 +81,13 @@ void traverse_8_shape(void)
     for (i = 0; i < 4; i++)
     {
         forward();
-        safe_delay_ms(500);  // Short forward burst
+        safe_delay_ms(500); 
         
         stop();
         safe_delay_ms(100);  
         
         right();
-        safe_delay_ms(400);  // Turn duration (Adjust this if it under/over turns)
+        safe_delay_ms(400); 
         
         stop();
         safe_delay_ms(100);  
