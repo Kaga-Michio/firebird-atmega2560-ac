@@ -18,7 +18,6 @@ void motion_pin_config(void)
 
 // ==========================================
 // L293D DIRECTION FUNCTIONS
-// PA0=LB, PA1=LF, PA2=RF, PA3=RB
 // ==========================================
 void forward(void)
 {
@@ -48,36 +47,38 @@ void stop(void)
 // ==========================================
 void traverse_8_shape(void)
 {
+    unsigned char i; // Declared outside the loop to fix GitHub compiler errors
+
     // Loop 1: Draw the first half of the '8' (Counter-Clockwise Square)
-    for (int i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++)
     {
         forward();
-        _delay_ms(1500); // Drive straight for 1.5 seconds
+        _delay_ms(1500); 
         
         stop();
-        _delay_ms(300);  // Brief pause to stabilize
+        _delay_ms(300);  
         
         left();
-        _delay_ms(700);  // Pivot left (approx 90 degrees)
+        _delay_ms(700);  
         
         stop();
-        _delay_ms(300);  // Brief pause to stabilize
+        _delay_ms(300);  
     }
 
     // Loop 2: Draw the second half of the '8' (Clockwise Square)
-    for (int i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++)
     {
         forward();
-        _delay_ms(1500); // Drive straight for 1.5 seconds
+        _delay_ms(1500); 
         
         stop();
-        _delay_ms(300);  // Brief pause to stabilize
+        _delay_ms(300);  
         
         right();
-        _delay_ms(700);  // Pivot right (approx 90 degrees)
+        _delay_ms(700);  
         
         stop();
-        _delay_ms(300);  // Brief pause to stabilize
+        _delay_ms(300);  
     }
 }
 
@@ -91,7 +92,6 @@ int main(void)
     // Initial delay before starting
     _delay_ms(1000);
     
-    // Trace the "8" shape
     traverse_8_shape();
 
     // Lock the robot in place when finished
