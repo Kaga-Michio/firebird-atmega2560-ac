@@ -2,11 +2,11 @@
 #define F_CPU 14745600UL
 #endif
 
-#include 
-#include 
+#include "avr/io.h"
+#include "util/delay.h"
 
 // ==========================================
-// SAFE DELAY WRAPPER (Fixes compiler limits)
+// SAFE DELAY WRAPPER 
 // ==========================================
 void safe_delay_ms(unsigned int delay_time)
 {
