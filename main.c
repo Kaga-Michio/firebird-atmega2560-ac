@@ -6,7 +6,7 @@
 #include "util/delay.h"
 
 // ==========================================
-// SAFE DELAY WRAPPER 
+// SAFE DELAY WRAPPER (Fixes compiler limits)
 // ==========================================
 void safe_delay_ms(unsigned int delay_time)
 {
@@ -43,54 +43,32 @@ void left(void)
     PORTA |= 0x05; 
 }
 
-void right(void)
-{
-    PORTA &= 0xF0; 
-    PORTA |= 0x0A; 
-}
-
 void stop(void)
 {
     PORTA &= 0xF0; 
 }
 
 // ==========================================
-// FIGURE-8 TRAVERSAL LOGIC
+// SQUARE TRAVERSAL LOGIC
 // ==========================================
-void traverse_8_shape(void)
+void traverse_square(void)
 {
     unsigned char i; 
 
-    // Loop 1: Draw the first half of the '8' (Counter-Clockwise Square)
+    // A square has 4 equal sides and 4 90-degree turns
     for (i = 0; i < 4; i++)
     {
         forward();
-        safe_delay_ms(500); 
+        safe_delay_ms(600);  // Short forward burst for the side of the square
         
         stop();
-        safe_delay_ms(100); 
+        safe_delay_ms(100);  // Brief pause to prevent skidding
         
         left();
-        safe_delay_ms(400); 
+        safe_delay_ms(400);  // 90-degree pivot left (Adjust this if it under/over turns)
         
         stop();
-        safe_delay_ms(100);  
-    }
-
-    // Loop 2: Draw the second half of the '8' (Clockwise Square)
-    for (i = 0; i < 4; i++)
-    {
-        forward();
-        safe_delay_ms(500); 
-        
-        stop();
-        safe_delay_ms(100);  
-        
-        right();
-        safe_delay_ms(400); 
-        
-        stop();
-        safe_delay_ms(100);  
+        safe_delay_ms(100);  // Brief pause to stabilize before the next side
     }
 }
 
@@ -100,10 +78,13 @@ void traverse_8_shape(void)
 int main(void)
 {
     motion_pin_config();
+    
+    // Initial delay before the robot starts moving
     safe_delay_ms(500);
     
-    traverse_8_shape();
+    traverse_square();
 
+    // Lock the robot in place when finished
     while (1)
     {
         stop();
