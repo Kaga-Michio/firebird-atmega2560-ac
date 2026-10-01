@@ -2,109 +2,102 @@
 #define F_CPU 14745600UL
 #endif
 
-#include <avr/io.h>
-#include <util/delay.h>
+#include 
+#include 
 
-/* =======================================================
-   RAW LCD DRIVER FUNCTIONS (4-BIT MODE)
-   RS = PC0, RW = PC1, EN = PC2, Buzzer = PC3, D4-D7 = PC4-PC7
-======================================================= */
-
-void lcd_cmd(unsigned char cmd)
+// ==========================================
+// MOTOR CONFIGURATION (Port A and Port L)
+// ==========================================
+void motion_pin_config(void)
 {
-    // Send upper nibble (Keep PC0-PC3 intact)
-    PORTC = (PORTC & 0x0F) | (cmd & 0xF0); 
-    PORTC &= ~(1 << PC0); // RS = 0 (Command register)
-    PORTC &= ~(1 << PC1); // RW = 0 (Write operation)
-    PORTC |= (1 << PC2);  // EN = 1
-    _delay_ms(1);
-    PORTC &= ~(1 << PC2); // EN = 0
-    _delay_ms(1);
-
-    // Send lower nibble
-    PORTC = (PORTC & 0x0F) | ((cmd << 4) & 0xF0); 
-    PORTC |= (1 << PC2);  // EN = 1
-    _delay_ms(1);
-    PORTC &= ~(1 << PC2); // EN = 0
-    _delay_ms(2);
+    DDRA |= 0x0F;  // PA0-PA3 as output (Direction control pins)
+    PORTA &= 0xF0; // Initial value set to 0
+    DDRL |= 0x18;  // PL3 and PL4 as output for Channel Enable/PWM
+    PORTL |= 0x18; // Set initial value of PL3 and PL4 to logic 1 to enable motors
 }
 
-void lcd_char(unsigned char data)
+// ==========================================
+// L293D DIRECTION FUNCTIONS
+// PA0=LB, PA1=LF, PA2=RF, PA3=RB
+// ==========================================
+void forward(void)
 {
-    // Send upper nibble (Keep PC0-PC3 intact)
-    PORTC = (PORTC & 0x0F) | (data & 0xF0); 
-    PORTC |= (1 << PC0);  // RS = 1 (Data register)
-    PORTC &= ~(1 << PC1); // RW = 0 (Write operation)
-    PORTC |= (1 << PC2);  // EN = 1
-    _delay_ms(1);
-    PORTC &= ~(1 << PC2); // EN = 0
-    _delay_ms(1);
-
-    // Send lower nibble
-    PORTC = (PORTC & 0x0F) | ((data << 4) & 0xF0); 
-    PORTC |= (1 << PC2);  // EN = 1
-    _delay_ms(1);
-    PORTC &= ~(1 << PC2); // EN = 0
-    _delay_ms(2);
+    PORTA &= 0xF0; 
+    PORTA |= 0x06; // PA1 (LF) and PA2 (RF) HIGH
 }
 
-void lcd_string(char *str)
+void left(void)
 {
-    while (*str)
+    PORTA &= 0xF0; 
+    PORTA |= 0x05; // PA0 (LB) and PA2 (RF) HIGH (Pivot Left)
+}
+
+void right(void)
+{
+    PORTA &= 0xF0; 
+    PORTA |= 0x0A; // PA1 (LF) and PA3 (RB) HIGH (Pivot Right)
+}
+
+void stop(void)
+{
+    PORTA &= 0xF0; // All direction pins LOW
+}
+
+// ==========================================
+// FIGURE-8 TRAVERSAL LOGIC
+// ==========================================
+void traverse_8_shape(void)
+{
+    // Loop 1: Draw the first half of the '8' (Counter-Clockwise Square)
+    for (int i = 0; i < 4; i++)
     {
-        lcd_char(*str++);
+        forward();
+        _delay_ms(1500); // Drive straight for 1.5 seconds
+        
+        stop();
+        _delay_ms(300);  // Brief pause to stabilize
+        
+        left();
+        _delay_ms(700);  // Pivot left (approx 90 degrees)
+        
+        stop();
+        _delay_ms(300);  // Brief pause to stabilize
+    }
+
+    // Loop 2: Draw the second half of the '8' (Clockwise Square)
+    for (int i = 0; i < 4; i++)
+    {
+        forward();
+        _delay_ms(1500); // Drive straight for 1.5 seconds
+        
+        stop();
+        _delay_ms(300);  // Brief pause to stabilize
+        
+        right();
+        _delay_ms(700);  // Pivot right (approx 90 degrees)
+        
+        stop();
+        _delay_ms(300);  // Brief pause to stabilize
     }
 }
 
-void lcd_init(void)
-{
-    DDRC = 0xFF; // Set all PORTC pins as output (LCD + Buzzer)
-    _delay_ms(20);
-    
-    // Standard 4-bit initialization sequence
-    lcd_cmd(0x02); // Return Home (Initialize 4-bit mode)
-    lcd_cmd(0x28); // 4-bit mode, 2 lines, 5x8 font
-    lcd_cmd(0x0C); // Display ON, Cursor OFF
-    lcd_cmd(0x06); // Auto-increment cursor
-    lcd_cmd(0x01); // Clear display
-    _delay_ms(2);
-}
-
-
-/* =======================================================
-   MAIN EXECUTABLE
-======================================================= */
-
+// ==========================================
+// MAIN EXECUTABLE
+// ==========================================
 int main(void)
 {
-    // Configure Boot Switch on PE7
-    DDRE &= ~(1 << PE7); // Set as input
-    PORTE |= (1 << PE7); // Enable internal pull-up resistor
+    motion_pin_config();
+    
+    // Initial delay before starting
+    _delay_ms(1000);
+    
+    // Trace the "8" shape
+    traverse_8_shape();
 
-    lcd_init();
-
+    // Lock the robot in place when finished
     while (1)
     {
-        // Check if boot switch is pressed (Active-Low logic)
-        if (!(PINE & (1 << PE7)))
-        {
-            // --- SWITCH PRESSED ---
-            PORTC |= (1 << PC3); // Turn Buzzer ON
-            
-            lcd_cmd(0x80); // Move cursor to Row 1, Column 1
-            // Padded with spaces to fully overwrite "Mid Lab Exam"
-            lcd_string("240102059   "); 
-        }
-        else
-        {
-            // --- SWITCH NOT PRESSED ---
-            PORTC &= ~(1 << PC3); // Turn Buzzer OFF
-            
-            lcd_cmd(0x80); // Move cursor to Row 1, Column 1
-            lcd_string("Mid Lab Exam");
-        }
-        
-        _delay_ms(50); // Small debounce delay
+        stop();
     }
 
     return 0;
