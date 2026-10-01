@@ -6,14 +6,26 @@
 #include 
 
 // ==========================================
+// SAFE DELAY WRAPPER
+// ==========================================
+void safe_delay_ms(unsigned int delay_time)
+{
+    unsigned int j;
+    for (j = 0; j < delay_time; j++)
+    {
+        _delay_ms(1); 
+    }
+}
+
+// ==========================================
 // MOTOR CONFIGURATION (Port A and Port L)
 // ==========================================
 void motion_pin_config(void)
 {
-    DDRA |= 0x0F;  // PA0-PA3 as output (Direction control pins)
-    PORTA &= 0xF0; // Initial value set to 0
-    DDRL |= 0x18;  // PL3 and PL4 as output for Channel Enable/PWM
-    PORTL |= 0x18; // Set initial value of PL3 and PL4 to logic 1 to enable motors
+    DDRA |= 0x0F;  
+    PORTA &= 0xF0; 
+    DDRL |= 0x18;  
+    PORTL |= 0x18; 
 }
 
 // ==========================================
@@ -22,24 +34,24 @@ void motion_pin_config(void)
 void forward(void)
 {
     PORTA &= 0xF0; 
-    PORTA |= 0x06; // PA1 (LF) and PA2 (RF) HIGH
+    PORTA |= 0x06; 
 }
 
 void left(void)
 {
     PORTA &= 0xF0; 
-    PORTA |= 0x05; // PA0 (LB) and PA2 (RF) HIGH (Pivot Left)
+    PORTA |= 0x05; 
 }
 
 void right(void)
 {
     PORTA &= 0xF0; 
-    PORTA |= 0x0A; // PA1 (LF) and PA3 (RB) HIGH (Pivot Right)
+    PORTA |= 0x0A; 
 }
 
 void stop(void)
 {
-    PORTA &= 0xF0; // All direction pins LOW
+    PORTA &= 0xF0; 
 }
 
 // ==========================================
@@ -47,38 +59,38 @@ void stop(void)
 // ==========================================
 void traverse_8_shape(void)
 {
-    unsigned char i; // Declared outside the loop to fix GitHub compiler errors
+    unsigned char i; 
 
     // Loop 1: Draw the first half of the '8' (Counter-Clockwise Square)
     for (i = 0; i < 4; i++)
     {
         forward();
-        _delay_ms(1500); 
+        safe_delay_ms(500);  // Short forward burst
         
         stop();
-        _delay_ms(300);  
+        safe_delay_ms(100);  // Brief pause
         
         left();
-        _delay_ms(700);  
+        safe_delay_ms(400);  // Turn duration (Adjust this if it under/over turns)
         
         stop();
-        _delay_ms(300);  
+        safe_delay_ms(100);  
     }
 
     // Loop 2: Draw the second half of the '8' (Clockwise Square)
     for (i = 0; i < 4; i++)
     {
         forward();
-        _delay_ms(1500); 
+        safe_delay_ms(500);  // Short forward burst
         
         stop();
-        _delay_ms(300);  
+        safe_delay_ms(100);  
         
         right();
-        _delay_ms(700);  
+        safe_delay_ms(400);  // Turn duration (Adjust this if it under/over turns)
         
         stop();
-        _delay_ms(300);  
+        safe_delay_ms(100);  
     }
 }
 
@@ -88,13 +100,10 @@ void traverse_8_shape(void)
 int main(void)
 {
     motion_pin_config();
-    
-    // Initial delay before starting
-    _delay_ms(1000);
+    safe_delay_ms(500);
     
     traverse_8_shape();
 
-    // Lock the robot in place when finished
     while (1)
     {
         stop();
