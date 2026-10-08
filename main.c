@@ -76,6 +76,22 @@ void lcd_cursor(char row, char column)
     if (row == 2) { lcd_cmd(0xC0 + column - 1); }
 }
 
+// Custom function to extract and print a 3-digit number to the LCD
+void lcd_print_number(unsigned int num)
+{
+    unsigned char hundreds, tens, ones;
+    
+    if (num > 999) num = 999; // Cap at 999 to prevent overflow
+    
+    hundreds = (num / 100);
+    tens = (num / 10) % 10;
+    ones = num % 10;
+    
+    lcd_char(hundreds + '0'); // Convert to ASCII character
+    lcd_char(tens + '0');
+    lcd_char(ones + '0');
+}
+
 void lcd_init(void)
 {
     port_config();
@@ -130,7 +146,7 @@ unsigned char ADC_Conversion(unsigned char Ch)
 // ==========================================
 unsigned char Sharp_sensor_data(void)
 {
-    // The Front Sharp IR range sensor is connected to ADC channel 11 (PK.3)[cite: 13]
+    // The Front Sharp IR range sensor is connected to ADC channel 11 (PK.3)
     return ADC_Conversion(11); 
 }
 
@@ -168,15 +184,15 @@ int main(void)
         sharp_dist_mm = Sharp_GP2D12_estimation(sharp_adc_val);
 
         // Determine the current distance zone
-        if (sharp_dist_mm >= 100 && sharp_dist_mm <= 200) // 10-20 cm[cite: 13]
+        if (sharp_dist_mm >= 100 && sharp_dist_mm <= 200) 
         {
             current_state = 1;
         }
-        else if (sharp_dist_mm > 200 && sharp_dist_mm <= 500) // 20-50 cm[cite: 13]
+        else if (sharp_dist_mm > 200 && sharp_dist_mm <= 500) 
         {
             current_state = 2;
         }
-        else if (sharp_dist_mm > 500 && sharp_dist_mm <= 800) // 50-80 cm[cite: 13]
+        else if (sharp_dist_mm > 500 && sharp_dist_mm <= 800) 
         {
             current_state = 3;
         }
@@ -185,47 +201,57 @@ int main(void)
             current_state = 0; // Out of range
         }
 
-        // If the obstacle entered a new zone, beep and update the screen
+        // --- STEP 1: UPDATE TEXT & BEEP ONLY ON ZONE CHANGE ---
         if (current_state != previous_state)
         {
-            // Only beep if an obstacle is actually in one of the 3 zones (not out of range)
             if (current_state != 0) 
             {
                 buzzer_beep();
             }
 
-            // Update LCD based on the new state
             if (current_state == 1)
             {
                 lcd_cursor(1, 1);
                 lcd_string("Obstacle is Near"); //[cite: 14]
                 lcd_cursor(2, 1);
-                lcd_string("                "); 
+                lcd_string("Dist:     mm    "); 
             }
             else if (current_state == 2)
             {
                 lcd_cursor(1, 1);
                 lcd_string("Obstacle is far "); //[cite: 14]
                 lcd_cursor(2, 1);
-                lcd_string("                "); 
+                lcd_string("Dist:     mm    "); 
             }
             else if (current_state == 3)
             {
                 lcd_cursor(1, 1);
                 lcd_string("Obstacle is very"); //[cite: 14]
                 lcd_cursor(2, 1);
-                lcd_string("far             "); //[cite: 14]
+                lcd_string("far! D:   mm    "); // Adjusted spacing to fit row 2
             }
             else
             {
                 lcd_cursor(1, 1);
                 lcd_string("Out of Range    ");
                 lcd_cursor(2, 1);
-                lcd_string("                ");
+                lcd_string("Dist:     mm    ");
             }
 
-            // Save state so it doesn't trigger again until the distance changes
             previous_state = current_state; 
+        }
+
+        // --- STEP 2: CONTINUOUSLY UPDATE DISTANCE VALUE ---
+        // Write the 3-digit number directly into the blank spaces we left above
+        if (current_state == 1 || current_state == 2 || current_state == 0)
+        {
+            lcd_cursor(2, 7); // Position cursor after "Dist: "
+            lcd_print_number(sharp_dist_mm);
+        }
+        else if (current_state == 3)
+        {
+            lcd_cursor(2, 8); // Position cursor after "far! D:"
+            lcd_print_number(sharp_dist_mm);
         }
 
         _delay_ms(50); // Small polling delay
